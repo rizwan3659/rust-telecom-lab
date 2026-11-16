@@ -337,3 +337,11 @@ rust-telecom-lab/
   the machine description (CPU, cores, RAM, kernel, rustc version, build profile).
 - Toolchain at initialization: rustc 1.98.1, cargo 1.98.1, Linux 6.8.
 - Task IDs: `<TRACK>-<TOPIC>-<NNN>`, e.g. `RUST-CODEC-001`, `NET-SCTP-002`, `DIA-BASE-001`.
+
+### Publishing progress (git)
+
+- Public repo: https://github.com/rizwan3659/rust-telecom-lab (branch `main`).
+- Commits use the repo-local GitHub noreply identity, never the global work email.
+- Commit and push at the end of each task (code, tests, task spec, updated
+  `LEARNING_PROGRESS.md`, benchmark files), and after each roadmap revision.
+  Commit message names the task ID, e.g. `DIA-HDR-001: decode and validate Diameter header`.

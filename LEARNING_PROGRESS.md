@@ -79,7 +79,7 @@ _(none yet)_
 
 ## GitHub milestones
 
-- [ ] Repository published
+- [x] Repository published — 2026-11-16, https://github.com/rizwan3659/rust-telecom-lab (public)
 - [ ] M1 — first public crate with benches
 
 ## YouTube tutorials
