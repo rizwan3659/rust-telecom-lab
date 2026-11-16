@@ -1,0 +1,19 @@
+# Rust build output
+/target/
+**/*.rs.bk
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Profiling artifacts (keep curated results in docs/benchmarks/ instead)
+perf.data
+perf.data.old
+flamegraph.svg
+dhat-heap.json
+
+# Local Claude Code settings
+.claude/settings.local.json
