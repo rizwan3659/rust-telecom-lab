@@ -1,10 +1,11 @@
 # LEARNING PROGRESS
 
-_Last updated: 2026-11-16_
+_Last updated: 2026-11-17_
 
 ## Current position
 
-- **Phase:** Month 1 — Rust foundations via the Diameter wire format (ROADMAP v1)
+- **Focus:** high-performance systems and performance optimization (ROADMAP v2, 2026-11-17)
+- **Phase:** Month 1 — `diameter-codec` + benchmark hygiene and profiling basics
 - **Track:** F (Advanced Rust) + A (binary protocols)
 - **Current task:** DIA-HDR-001 — Diameter message header codec (`docs/tasks/DIA-HDR-001.md`), assigned 2026-11-16
 - **Assessment:** ASSESS-000 completed 2026-11-16 (10 / 10 answered)
@@ -89,9 +90,11 @@ _(none yet)_
 ## Next recommended tasks
 
 1. **DIA-HDR-001** — Diameter header codec (current)
-2. DIA-AVP-001 — zero-copy AVP iterator
-3. DIA-AVP-002 — fuzzing + negative tests
-4. PERF-BENCH-001 — first Criterion benchmark
+2. PERF-LAB-001 — reproducible benchmark environment (week 1, after or alongside DIA-HDR-001)
+3. DIA-AVP-001 — zero-copy AVP iterator
+4. DIA-AVP-002 — fuzzing + negative tests
+5. PERF-BENCH-001 — first Criterion benchmarks
+6. PERF-LAB-002 — allocation cost
 
 Weeks 1–4 plan: see ROADMAP.md "Weeks 1–4 in detail".
 
@@ -99,3 +102,8 @@ Weeks 1–4 plan: see ROADMAP.md "Weeks 1–4 in detail".
 
 - OS: Linux 6.8.0-138-generic
 - Toolchain: rustc 1.98.1, cargo 1.98.1
+- CPU: Intel i7-11700, 8 cores / 16 threads, 1 NUMA node; AVX2, AVX-512, AES-NI, SHA-NI
+- RAM: 15 GiB (≈4 GiB free at check on 2026-11-17)
+- Governor: powersave, turbo on (to be handled in PERF-LAB-001)
+- NIC: Intel e1000e 1 GbE (AF_XDP generic mode only)
+- Profilers: perf installed; bpftrace, heaptrack not installed

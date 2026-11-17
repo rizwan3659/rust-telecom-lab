@@ -337,6 +337,10 @@ rust-telecom-lab/
   the machine description (CPU, cores, RAM, kernel, rustc version, build profile).
 - Toolchain at initialization: rustc 1.98.1, cargo 1.98.1, Linux 6.8.
 - Task IDs: `<TRACK>-<TOPIC>-<NNN>`, e.g. `RUST-CODEC-001`, `NET-SCTP-002`, `DIA-BASE-001`.
+- **Primary focus (learner's decision, 2026-11-17): high-performance systems and performance
+  optimization.** Telecom protocols are the workloads. Every task should carry a measurable
+  performance element; weekly hours follow ROADMAP.md (v2), which supersedes §12's split.
+  Performance reports follow `docs/benchmarks/README.md`.
 
 ### Publishing progress (git)
 
