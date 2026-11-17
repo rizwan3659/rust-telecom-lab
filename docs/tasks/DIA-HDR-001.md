@@ -7,6 +7,7 @@
 | **Difficulty** | Beginner–Intermediate (Rust), Beginner (telecom) |
 | **Estimated time** | 3–4 h (including workspace setup) |
 | **Prerequisites** | Rust slices and borrowing, `Result`, enums, `u32::from_be_bytes` |
+| **Mode** | **Hand-written foundation task** (CLAUDE.md §16): you write the code; Claude hints and reviews only |
 | **Status** | Assigned 2026-11-16 |
 
 ## Learning objectives

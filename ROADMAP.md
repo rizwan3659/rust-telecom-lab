@@ -1,109 +1,147 @@
 # ROADMAP — Rust Telecom Lab (12 months)
 
-> **Status:** v2 — revised 2026-11-17. **Primary focus: high-performance systems and
-> performance optimization.** Telecom protocols are the workloads that performance is
-> engineered on. v1 assessment findings still apply (see `LEARNING_PROGRESS.md`).
+> **Status:** v3 — revised 2026-11-17.
+> **Goal:** become the engineer who, working with Claude Code, can build high-performance
+> telecom systems, find bottlenecks, debug complex traffic, and verify AI-written Rust.
+> Telecom protocols are the workloads; performance and diagnosis are the skills.
+
+## Working model: AI-paired engineering
+
+Claude Code writes most of the implementation code. You own everything that decides whether
+the result is correct and fast. Typing code is cheap; judgment and evidence are not.
+
+| Step | Who | What |
+|---|---|---|
+| 1. Specify | **You** | Write the task's behaviour, acceptance criteria and test cases from the RFC / 3GPP spec |
+| 2. Predict | **You** | Write down the expected bottleneck and rough performance *before* any code exists |
+| 3. Implement | Claude | Implementation, from your spec (except foundation and kata tasks, which you write) |
+| 4. Verify | **You** | Read every line on the critical path; run tests, clippy, fuzzing; check spec conformance |
+| 5. Measure | **You** | Benchmark, profile, load-test; collect the evidence |
+| 6. Diagnose | You + Claude | Claude proposes hypotheses from your evidence; you confirm or reject each with a measurement |
+| 7. Explain | **You** | Explain why the code is correct and why it performs as it does; compare with step 2 |
+
+**Rule:** no claim is accepted without evidence, whether it comes from you, from Claude, or
+from a blog post. That includes Claude's claims about 3GPP behaviour.
+
+### Task types
+
+| Type | ID prefix | What you train |
+|---|---|---|
+| Foundation (hand-written) | DIA-HDR, DIA-AVP-001 | Ownership/borrowing intuition needed to review Rust at all |
+| Kata (hand-written, ~1–2 h, every ~3 weeks) | KATA-xxx | Keeping hands-on fluency in async, atomics, unsafe review |
+| AI-paired build | DIA-, NET-, SIP-, NGAP-, UPF- … | Specification, verification, measurement |
+| Performance lab | PERF-LAB-xxx | Measured experiments on hardware behaviour |
+| Review drill | REVIEW-DRILL-xxx | Claude writes code with planted correctness, performance and panic bugs; you find them |
+| Debug drill | DEBUG-DRILL-xxx | A fault is injected into a running system; you find the root cause within a time box |
+| Traffic drill | TRAFFIC-xxx | pcap analysis with Wireshark/tshark: latency, retransmissions, failing peer or procedure |
+| Real-system drill | REAL-xxx | Load and profile Open5GS / UERANSIM / Kamailio; find their bottlenecks |
+
+Every debug, traffic and real-system drill produces a root-cause report in `docs/rca/`.
 
 ## Weekly time budget (~20 h)
 
-| Activity | v1 | v2 | Why |
-|---|---:|---:|---|
-| Telecom theory and standards | 5 h | 4 h | Theory only as needed to build realistic workloads |
-| Rust implementation | 6 h | 6 h | Unchanged |
-| Testing, benchmarking, profiling, optimization | 5 h | **7 h** | Includes ~2 h/week of the **performance lab thread** |
-| Documentation and YouTube | 3 h | 2 h | Performance write-ups double as content |
-| Community and monetization | 1 h | 1 h | Unchanged |
+| Activity | Hours |
+|---|---:|
+| Telecom theory and standards (still essential: it's how you catch AI being wrong) | 4 |
+| Specifying, reviewing, and hand-writing foundation/kata code | 6 |
+| Benchmarking, profiling, perf labs, debug/traffic drills | 7 |
+| Documentation, RCA write-ups, YouTube | 2 |
+| Community, upstream contributions, monetization | 1 |
 
-## The rule for every component
+## Definition of done for every component
 
-A component is not finished when it works. It is finished when you can show:
-
-1. **Baseline:** throughput (TPS, CPS or pps), p50/p95/p99/p99.9, CPU per core, RSS, with machine specs.
-2. **Profile:** a flamegraph or counter data (`perf stat`) explaining where time goes.
-3. **Bottleneck statement:** a one-sentence claim backed by the profile ("38% in malloc from per-AVP Vec").
-4. **Experiment:** one change, with before/after numbers and the change's effect on correctness tests.
-5. **Capacity curve:** latency vs offered load, up to and past the saturation point (from month 3 on).
-
-Correctness tests must pass after every optimization. A faster wrong answer is a regression.
+1. **Correctness:** tests from your spec pass, including negative, boundary and malformed-input (fuzz) tests.
+2. **Review:** you can explain every line on the critical path.
+3. **Baseline:** throughput (TPS, CPS or pps), p50/p95/p99/p99.9, CPU per core, RSS, with machine specs.
+4. **Profile:** flamegraph or `perf stat` evidence of where time goes.
+5. **Bottleneck statement:** one sentence, backed by the profile.
+6. **Experiment:** one change with before/after numbers; correctness tests still pass.
+7. **Capacity curve:** latency vs offered load, past saturation (from month 3 on).
+8. **Prediction check:** how your step-2 prediction compared with reality.
 
 ## Phase overview
 
-| Month | Build (telecom workload) | Performance focus | Perf deliverable |
-|------:|---|---|---|
-| 1 | `diameter-codec`: header, AVPs, grouped AVPs, encoder | Benchmark hygiene, Criterion, flamegraphs, allocation profiling | Single-allocation encoder with before/after; zero-alloc decoder proven |
-| 2 | Async Diameter peer: Tokio framing, CER/CEA, DWR/DWA watchdog, session table | Async runtime cost; lock contention: global Mutex vs sharded vs actor, measured | Contention benchmark across 1–16 threads with a written explanation |
-| 3 | Open-loop load generator v0 (Diameter) | HdrHistogram, coordinated omission, capacity curves, USE method, false sharing | Capacity curve of your own Diameter server; per-thread stats without false sharing |
-| 4 | Zero-copy SIP parser + transaction timers | Data layout, branch prediction, SIMD scanning (`memchr`, AVX2/AVX-512), timer wheels vs heaps | Parser throughput in GB/s and messages/s; timer structure comparison at 1M timers |
-| 5 | High-performance UDP signaling path (SIP/Diameter over UDP) + load generator v1 | Syscall batching (`recvmmsg`/`sendmmsg`), GSO/GRO, `SO_REUSEPORT` multi-core scaling, core pinning, IRQ/RSS affinity | Scaling curve 1→8 cores; comparison against SIPp at identical scenarios |
-| 6 | 5G-AKA / Milenage (TS 35.206, test vectors TS 35.208) + NAS-5GS decoder (TS 24.501) | Crypto cost per registration, AES-NI, batching crypto work off the async path | Registrations/s per core bound by crypto, measured |
-| 7 | NGAP (TS 38.413, ASN.1 APER) + SCTP transport | Decode cost of PER vs TLV; SCTP vs TCP throughput and latency | Decode benchmarks; SCTP vs TCP comparison report |
-| 8 | UE/gNB simulator as a **high-scale load generator** (register against Open5GS) | Memory per simulated UE, state-machine layout, 100k+ concurrent UEs, timer scalability | Max simulated UEs within a fixed memory budget, measured |
-| 9 | GTP-U forwarder (TS 29.281), stage 1, with a minimal PFCP rule install (TS 29.244) | pps methodology; per-packet cost budget; batching; multi-core RSS; lookup tables for packet detection | pps/core curve; ns-per-packet breakdown |
-| 10 | GTP-U forwarder stage 2 | `io_uring`, AF_XDP, lock-free session lookup, prefetching | stage-1 vs stage-2 comparison (see hardware notes) |
-| 11 | Observability + continuous benchmarking | eBPF (`bpftrace`), off-CPU analysis, `perf stat` counters, perf-regression CI | CI job that fails on a >X% regression |
-| 12 | HA stateful NF: replicated session store, fencing | Cost of replication on p99; failover time; recovery throughput | Failover time and p99 impact, measured under load |
+| Month | Build | Performance focus | Drills and real systems | Perf deliverable |
+|------:|---|---|---|---|
+| 1 | `diameter-codec` (header + AVP iterator hand-written; encoder AI-paired) | Benchmark hygiene, Criterion, flamegraphs, allocation profiling | First review drill; Diameter pcaps with tshark | Zero-alloc decoder proven; single-alloc encoder before/after |
+| 2 | Async Diameter peer: framing, CER/CEA, DWR/DWA watchdog, session table | Async runtime cost; lock contention (global vs sharded vs actor) | Debug drills: blocking call in async, lock contention, slow peer | Contention benchmark across 1–16 threads |
+| 3 | Open-loop load generator v0 (Diameter) | HdrHistogram, coordinated omission, capacity curves, USE method | Load and profile freeDiameter; **re-assessment #1** | Capacity curve of your server and of freeDiameter |
+| 4 | Zero-copy SIP parser + transaction timers | Data layout, SIMD scanning, timer wheels vs heaps | SIP pcap drills: retransmissions, Timer A/B/F behaviour | Parser GB/s; timer structures at 1M timers |
+| 5 | Multi-core UDP signaling path + load generator v1 (IMS REGISTER scenario) | `recvmmsg`/`sendmmsg`, GSO/GRO, `SO_REUSEPORT`, pinning, IRQ/RSS | **REAL:** load and profile Kamailio; compare with SIPp | Scaling curve 1→8 cores |
+| 6 | 5G-AKA / Milenage + NAS-5GS decoder | Crypto cost per registration, AES-NI | Verify AI-written crypto against TS 35.208 test vectors; Open5GS + UERANSIM lab setup; **re-assessment #2** | Registrations/s per core, crypto-bound |
+| 7 | NGAP via a generated ASN.1 APER codec (evaluate existing Rust ASN.1 crates) + SCTP | PER vs TLV decode cost; SCTP vs TCP | NGAP pcap drills: failed registrations, SCTP issues | Decode benchmarks; SCTP vs TCP report |
+| 8 | UE/gNB simulator as a high-scale load generator | Memory per UE, state-machine layout, 100k+ UEs | **REAL:** find the Open5GS AMF bottleneck under your load (profiling C code with perf) | Max UEs within a memory budget; Open5GS capacity curve |
+| 9 | GTP-U forwarder stage 1 + minimal PFCP rule install | pps methodology, per-packet budget, batching, multi-core | Debug drills: packet loss, PFCP heartbeat/restart scenarios; **re-assessment #3** | pps/core curve, ns-per-packet breakdown |
+| 10 | GTP-U forwarder stage 2 | `io_uring`, AF_XDP, lock-free lookup, prefetching | Compare against Open5GS UPF | Stage-1 vs stage-2 comparison |
+| 11 | Observability + continuous benchmarking | eBPF (`bpftrace`), off-CPU analysis, `perf stat` counters | Debug drills using only production-style telemetry | CI job failing on perf regression |
+| 12 | HA stateful NF: replicated session store, fencing | Replication cost on p99; failover time | Chaos drills: `kill -9`, `tc netem` partitions | Failover time and p99 impact under load |
 
-**Moved to year 2:** IMS call lab and the LTE/EPC lab. IMS registration remains as a
-load scenario in month 5. DPDK is a year-2 option (needs FFI, `unsafe`, and suitable NICs).
+**Moved to year 2:** IMS call lab, LTE/EPC lab, DPDK.
+
+## Milestones — measured by what you can diagnose
+
+| Milestone | Build result | Diagnosis capability (time-boxed drill) |
+|---|---|---|
+| **M1** (end month 3) | Diameter stack + open-loop load generator, capacity curve published | Find an injected fault in your Diameter server with evidence within 2 h |
+| **M2** (end month 5) | Multi-core UDP signaling path, SIPp comparison | Explain Kamailio's bottleneck under your load with a flamegraph |
+| **M3** (end month 8) | UE/gNB simulator registering against Open5GS at scale | Diagnose a failing or slow 5G registration from pcaps + logs within 2 h |
+| **M4** (end month 10) | GTP-U forwarder, stage-1 vs stage-2 | Locate a pps drop between NIC, kernel and application |
+| **M5** (end month 12) | HA NF with failover measurements | Run a chaos drill and produce a full RCA with timeline |
 
 ## Performance lab thread (~2 h/week)
 
-Small, self-contained experiments on code you've already written. Each one is a
-hypothesis, a measurement, and a short note in `docs/benchmarks/`.
-
 | ID | Experiment | Concept |
 |---|---|---|
-| PERF-LAB-001 | Make benchmarks reproducible: CPU governor, turbo, core isolation, run-to-run variance | Noise and how to control it |
-| PERF-LAB-002 | Cost of heap allocation vs stack vs reused buffer | Allocator cost |
-| PERF-LAB-003 | Bounds checks: indexing vs iterators vs fixed-size arrays; read the assembly (`cargo asm`) | What the compiler does with your code |
-| PERF-LAB-004 | 100k Tokio tasks vs 100k OS threads: memory and switch latency | Tasks vs threads, measured (assessment Q5) |
-| PERF-LAB-005 | False sharing: packed vs cache-padded per-thread counters, 1–16 threads | Cache lines (assessment Q7) |
-| PERF-LAB-006 | Sequential vs random memory access; linked list vs `Vec` | Cache misses, prefetching |
-| PERF-LAB-007 | `HashMap` hashers (SipHash vs FxHash/ahash) on session-ID keys; security trade-off | Hashing cost vs HashDoS |
-| PERF-LAB-008 | Closed-loop vs open-loop load against a server with an injected stall | Coordinated omission (assessment Q8) |
-| PERF-LAB-009 | One `recv` per packet vs `recvmmsg` batches | Syscall overhead |
-| PERF-LAB-010 | Branch-heavy vs branchless parsing; `perf stat` branch-misses | Branch prediction |
+| PERF-LAB-001 | Reproducible benchmarks: governor, turbo, core isolation, run-to-run variance | Noise control |
+| PERF-LAB-002 | Heap vs stack vs reused buffer | Allocator cost |
+| PERF-LAB-003 | Indexing vs iterators vs fixed arrays; read the assembly | Bounds checks, codegen |
+| PERF-LAB-004 | 100k Tokio tasks vs 100k OS threads | Tasks vs threads (assessment Q5) |
+| PERF-LAB-005 | Packed vs cache-padded per-thread counters, 1–16 threads | False sharing (Q7) |
+| PERF-LAB-006 | Sequential vs random access; linked list vs `Vec` | Cache misses, prefetching |
+| PERF-LAB-007 | SipHash vs FxHash/ahash on session-ID keys | Hashing cost vs HashDoS |
+| PERF-LAB-008 | Closed- vs open-loop load against an injected stall | Coordinated omission (Q8) |
+| PERF-LAB-009 | One `recv` per packet vs `recvmmsg` | Syscall overhead |
+| PERF-LAB-010 | Branchy vs branchless parsing; `perf stat` branch-misses | Branch prediction |
 
-More are added as the build phases raise questions.
+## AI workflow skills (practised in every task)
+
+- Turning evidence into text the AI can use: `perf report --stdio`, `perf stat`, `tshark -T fields`, `ss -tni`, test output.
+- Asking for **hypotheses and a way to test each one**, not for fixes.
+- Giving context through `CLAUDE.md`, task specs and acceptance tests, so generated code is held to your spec.
+- Using a second AI pass (review agents, `/code-review`) as one input, never as the verdict.
+- Spotting AI failure patterns: invented spec references, untested edge cases, unmeasured performance claims.
 
 ## Hardware notes (measured 2026-11-17)
 
 | Resource | Value | Consequence |
 |---|---|---|
-| CPU | Intel i7-11700, 8 cores / 16 threads, 1 NUMA node | Good for scaling curves to 8 cores. NUMA experiments not possible. |
-| SIMD / crypto | AVX2, AVX-512 (F/BW), AES-NI, SHA-NI | SIMD parsing and crypto labs fully possible |
-| Caches | L1d 48 KiB/core, L2 512 KiB/core, L3 16 MiB shared | Working-set experiments will show clear steps at these sizes |
-| RAM | 15 GiB total, ~4 GiB free at check time | 100k-UE simulation must be memory-budgeted; close other apps for benchmarks |
-| CPU governor | `powersave`, turbo on | Benchmarks need PERF-LAB-001 first, or run-to-run noise will hide real effects |
-| NIC | Intel `e1000e`, 1 GbE | Real line-rate packet work is limited to 1 Gb/s. AF_XDP runs only in generic (copy) mode: fine for learning the API, **not** for meaningful pps numbers |
-| Tools | `perf` installed; `bpftrace`, `heaptrack` not yet | Install as each month needs them |
+| CPU | Intel i7-11700, 8 cores / 16 threads, 1 NUMA node | Scaling curves to 8 cores; no NUMA experiments |
+| SIMD / crypto | AVX2, AVX-512 (F/BW), AES-NI, SHA-NI | SIMD and crypto labs fully possible |
+| Caches | L1d 48 KiB/core, L2 512 KiB/core, L3 16 MiB shared | Working-set steps visible at these sizes |
+| RAM | 15 GiB, ~4 GiB free at check time | Memory-budget the 100k-UE simulator; close other apps for benchmarks |
+| CPU governor | `powersave`, turbo on | PERF-LAB-001 first, or noise hides real effects |
+| NIC | Intel `e1000e`, 1 GbE | AF_XDP generic mode only: OK for learning, **not** for meaningful pps numbers |
+| Tools | `perf` installed; `bpftrace`, `heaptrack`, `tshark` to install when needed | — |
 
-Single-machine testing: the load generator and the system under test share the CPU.
-Pin them to separate cores (`taskset`) and report it. For realistic month-9/10 numbers,
-a second machine or a NIC with native XDP support (e.g. Intel X710/E810 class) would be needed.
-This is optional; it is noted so results are never over-claimed.
+Single machine: pin load generator and system under test to separate cores and report it.
+A second machine or a NIC with native XDP (e.g. Intel X710/E810 class) is optional, for
+publishable month-9/10 results.
 
 ## Weeks 1–4 in detail
 
-| Week | Engineering tasks | Performance lab | Reading (~4 h) |
+| Week | Build | Perf lab / drills | Reading (~4 h) |
 |---:|---|---|---|
-| 1 | **DIA-HDR-001** Diameter header codec | **PERF-LAB-001** reproducible benchmark environment | RFC 6733 §3; Gregg *Systems Performance* ch. 2 (methodologies) |
-| 2 | **DIA-AVP-001** zero-copy AVP iterator · **DIA-AVP-002** fuzzing · **PERF-BENCH-001** first Criterion benchmarks | **PERF-LAB-002** allocation cost | RFC 6733 §4; Criterion user guide; *The Rust Performance Book* |
-| 3 | **DIA-AVP-003** grouped AVPs · **DIA-ENC-001** single-allocation encoder · **PERF-PROF-001** flamegraph + allocation count, before/after | **PERF-LAB-003** bounds checks and assembly | Drepper *What Every Programmer Should Know About Memory* §3 (caches) |
-| 4 | **NET-FRAME-001** Tokio TCP framing · **NET-DIAG-001** accept-queue overflow lab | **PERF-LAB-004** tasks vs threads | RFC 6733 §5; Tokio tutorial; Mara Bos *Rust Atomics and Locks* ch. 1–2 |
-
-## Milestones
-
-- **M1 (end month 3):** Diameter stack + open-loop load generator, with a published capacity curve.
-- **M2 (end month 5):** Multi-core UDP signaling path with a scaling curve and a SIPp comparison.
-- **M3 (end month 8):** UE/gNB simulator registering against Open5GS, with max-UE and memory-per-UE results.
-- **M4 (end month 10):** GTP-U forwarder with stage-1 vs stage-2 pps comparison.
-- **M5 (end month 12):** HA NF with failover time and p99 impact measured under load.
+| 1 | **DIA-HDR-001** header codec — *hand-written* | **PERF-LAB-001** reproducible benchmarks · **TRAFFIC-001** tshark basics on a Diameter sample capture | RFC 6733 §3; Gregg *Systems Performance* ch. 2 |
+| 2 | **DIA-AVP-001** zero-copy AVP iterator — *hand-written* · **PERF-BENCH-001** first Criterion benchmarks (you design what to measure; AI-paired harness) | **REVIEW-DRILL-001** AI-written AVP encoder with planted bugs · **PERF-LAB-002** | RFC 6733 §4; *The Rust Performance Book* |
+| 3 | **DIA-ENC-001** encoder — *AI-paired*: your spec, tests and prediction; Claude implements naive then single-alloc · **DIA-AVP-002** fuzzing | **PERF-PROF-001** flamegraph + allocation counts, before/after · **PERF-LAB-003** | RFC 6733 §4.4; Drepper *What Every Programmer Should Know About Memory* §3 |
+| 4 | **NET-FRAME-001** Tokio TCP framing — *AI-paired* · **NET-DIAG-001** accept-queue overflow lab | **DEBUG-DRILL-001** p99 spike in an async server (injected fault) · **PERF-LAB-004** | RFC 6733 §5; Tokio tutorial; Mara Bos *Rust Atomics and Locks* ch. 1–2 |
 
 ## Revision log
 
 - 2026-11-12 — v0 draft created at workspace initialization (pre-assessment).
 - 2026-11-16 — v1: rebuilt from assessment results.
-- 2026-11-17 — v2: performance becomes the primary focus. Rebalanced weekly hours,
-  added the performance lab thread, made each phase's deliverable a performance result,
-  added hardware notes, moved IMS call lab to year 2.
+- 2026-11-17 — v2: performance becomes the primary focus; perf lab thread; hardware notes.
+- 2026-11-17 — v3: AI-paired engineering model. Hand-written foundation limited to
+  DIA-HDR-001 and DIA-AVP-001 plus periodic katas; added review, debug, traffic and
+  real-system drills; RCA library; quarterly re-assessment; malformed-input testing;
+  upstream contributions; milestones measured by diagnosis capability.

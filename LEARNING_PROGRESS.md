@@ -4,10 +4,11 @@ _Last updated: 2026-11-17_
 
 ## Current position
 
-- **Focus:** high-performance systems and performance optimization (ROADMAP v2, 2026-11-17)
+- **Focus:** high-performance systems, performance optimization, bottleneck finding and traffic
+  debugging, with Claude Code as a permanent pair (ROADMAP v3, CLAUDE.md §16, 2026-11-17)
 - **Phase:** Month 1 — `diameter-codec` + benchmark hygiene and profiling basics
 - **Track:** F (Advanced Rust) + A (binary protocols)
-- **Current task:** DIA-HDR-001 — Diameter message header codec (`docs/tasks/DIA-HDR-001.md`), assigned 2026-11-16
+- **Current task:** DIA-HDR-001 — Diameter message header codec (`docs/tasks/DIA-HDR-001.md`), assigned 2026-11-16 — **hand-written foundation task**
 - **Assessment:** ASSESS-000 completed 2026-11-16 (10 / 10 answered)
 
 ## Assessment log
@@ -66,6 +67,15 @@ _(none yet)_
 | Task | Passed | Failed | Notes |
 |------|-------:|-------:|-------|
 
+## Drills and root-cause reports
+
+| Drill ID | Type | Date | Time box / taken | Solved (unaided / hints / AI) | Report |
+|---|---|---|---|---|---|
+
+## Upstream contributions
+
+_(issues or patches filed against Open5GS, UERANSIM, Kamailio, freeDiameter, Rust crates)_
+
 ## Benchmark results
 
 _No benchmarks run yet. Every entry must include machine specs, rustc version and build profile._
@@ -89,12 +99,15 @@ _(none yet)_
 
 ## Next recommended tasks
 
-1. **DIA-HDR-001** — Diameter header codec (current)
-2. PERF-LAB-001 — reproducible benchmark environment (week 1, after or alongside DIA-HDR-001)
-3. DIA-AVP-001 — zero-copy AVP iterator
-4. DIA-AVP-002 — fuzzing + negative tests
-5. PERF-BENCH-001 — first Criterion benchmarks
-6. PERF-LAB-002 — allocation cost
+1. **DIA-HDR-001** — Diameter header codec (current, hand-written)
+2. PERF-LAB-001 — reproducible benchmark environment
+3. TRAFFIC-001 — tshark basics on a Diameter sample capture
+4. DIA-AVP-001 — zero-copy AVP iterator (hand-written)
+5. PERF-BENCH-001 — first Criterion benchmarks (AI-paired)
+6. REVIEW-DRILL-001 — find planted bugs in an AI-written AVP encoder
+7. PERF-LAB-002 — allocation cost
+
+Scheduled re-assessments: month 3 (≈2027-02), month 6 (≈2027-05), month 9 (≈2027-08).
 
 Weeks 1–4 plan: see ROADMAP.md "Weeks 1–4 in detail".
 
